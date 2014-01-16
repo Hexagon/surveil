@@ -30,19 +30,18 @@ char* format_time(const char* format_string) {
   return outstr;
 }
 
-void png_exit_on_error(int e) {
+void png_write_error(int e) {
   if ( e < 0 ) {
-    if ( e == PNG_FILE_ERROR )  printf("File error: PNG_FILE_ERROR\n");
-    if ( e == PNG_HEADER_ERROR) printf("File error: PNG_HEADER_ERROR\n");
-    if ( e == PNG_IO_ERROR) printf("File error: PNG_IO_ERROR\n");
-    if ( e == PNG_EOF_ERROR) printf("File error: PNG_EOF_ERROR\n");
-    if ( e == PNG_CRC_ERROR) printf("File error: PNG_CRC_ERROR\n");
-    if ( e == PNG_MEMORY_ERROR) printf("File error: PNG_MEMORY_ERROR\n");
-    if ( e == PNG_ZLIB_ERROR) printf("File error: PNG_ZLIB_ERROR\n");
-    if ( e == PNG_UNKNOWN_FILTER) printf("File error: PNG_UNKNOWN_FILTER\n");
-    if ( e == PNG_NOT_SUPPORTED) printf("File error: PNG_NOT_SUPPORTED\n");
-    if ( e == PNG_WRONG_ARGUMENTS) printf("File error: PNG_WRONG_ARGUMENTS\n");
-    exit(1);
+    if ( e == PNG_FILE_ERROR )  fprintf(stderr, "File error: PNG_FILE_ERROR\n");
+    if ( e == PNG_HEADER_ERROR) fprintf(stderr, "File error: PNG_HEADER_ERROR\n");
+    if ( e == PNG_IO_ERROR) fprintf(stderr, "File error: PNG_IO_ERROR\n");
+    if ( e == PNG_EOF_ERROR) fprintf(stderr, "File error: PNG_EOF_ERROR\n");
+    if ( e == PNG_CRC_ERROR) fprintf(stderr, "File error: PNG_CRC_ERROR\n");
+    if ( e == PNG_MEMORY_ERROR) fprintf(stderr, "File error: PNG_MEMORY_ERROR\n");
+    if ( e == PNG_ZLIB_ERROR) fprintf(stderr, "File error: PNG_ZLIB_ERROR\n");
+    if ( e == PNG_UNKNOWN_FILTER) fprintf(stderr, "File error: PNG_UNKNOWN_FILTER\n");
+    if ( e == PNG_NOT_SUPPORTED) fprintf(stderr, "File error: PNG_NOT_SUPPORTED\n");
+    if ( e == PNG_WRONG_ARGUMENTS) fprintf(stderr, "File error: PNG_WRONG_ARGUMENTS\n");
   }
 }
 
@@ -51,14 +50,16 @@ int open_png(png_file* file, const char* path) {
   int r;
 
   r = png_open_file(&file->png_obj, path);
-  png_exit_on_error(r);
+  png_write_error(r);
+ 
+  if( r >= PNG_NO_ERROR ) {
+    file->data = (unsigned char*)malloc(file->png_obj.width*file->png_obj.height*file->png_obj.bpp);
+    r = png_get_data(&file->png_obj, file->data);
+    png_write_error(r);
+    file->is_open = 1;
+  }
 
-  file->data = (unsigned char*)malloc(file->png_obj.width*file->png_obj.height*file->png_obj.bpp);
-  r = png_get_data(&file->png_obj, file->data);
-  png_exit_on_error(r);
-
-  file->is_open = 1;
-
+  return r;
 }
 
 void print_help() {
@@ -128,7 +129,7 @@ void parse_options(prog_options* options, int argc, char **argv) {
           break;
         case 'h':
           print_help();
-          exit(0);
+          exit(EXIT_SUCCESS);
           break;
         case 't':
           options->tune = 1;
@@ -151,14 +152,14 @@ void parse_options(prog_options* options, int argc, char **argv) {
         default:
           fprintf(stderr, "Unknown argument: 0%o\n",c);
           print_help();
-          exit(1);
+          exit(EXIT_FAILURE);
           break;
       }
     }
   } else {
     fprintf(stderr, "Unknown argument: %s\n",c);
     print_help();
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
 }
@@ -167,32 +168,36 @@ void validate_options(prog_options* options) {
 
   if ( options->file_current == NULL || ( options->file_previous == NULL && options->file_out_difference != NULL )) {
     fprintf(stderr, "Invalid arguments: You need to specify -c (--current) and -p (--previous)\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   if ( options->file_out == NULL && options->file_out_difference == NULL && !options->tune ) {
     fprintf(stderr, "Info: No output -o (--out) or difference output -d (--diff) specified, no output will be written.\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
 }
 
-void png_save_file(png_file* file, const char* path) {
+int png_save_file(png_file* file, const char* path) {
 
   int r;
 
   png_t ps;
   r = png_open_file_write(&ps, path);
-  png_exit_on_error(r);
+  png_write_error(r);
+  if( r >= PNG_NO_ERROR ) {
+    // ToDo: User selectable bitrate for output
+    r = png_set_data(&ps, file->png_obj.width, file->png_obj.height, 8, file->png_obj.color_type, file->data);
+    png_write_error(r);
+    if( r >= PNG_NO_ERROR ) {
 
-  // ToDo: User selectable bitrate for output
-  r = png_set_data(&ps, file->png_obj.width, file->png_obj.height, 8, file->png_obj.color_type, file->data);
-  png_exit_on_error(r);
+      // Close
+      r = png_close_file(&ps);
+      png_write_error(r);
+    }
+  }
 
-  // Close
-  r = png_close_file(&ps);
-  png_exit_on_error(r);
-
+  return r;
 }
 
 double get_timediff(struct timeval* tv1, struct timeval* tv2) {
@@ -231,80 +236,88 @@ int main(int argc, char **argv)
       // Read current image
       if(p.debug) gettimeofday(&tv1, NULL);
       r = open_png(&pf_current, p.file_current);
-      png_exit_on_error(r);
+      png_write_error(r);
+      if( r >= PNG_NO_ERROR ) {
 
-      // Read "previous" image
-      if( pf_previous.is_open != 1 ) {
-        r = open_png(&pf_previous, p.file_current);
-        png_exit_on_error(r);
-      }
+        // Read "previous" image
+        if( pf_previous.is_open != 1 ) {
+          r = open_png(&pf_previous, p.file_current);
+          png_write_error(r);
+        }
 
-      // Image instance from png
-      motion_image image_current;
-      image_from_png_data (&image_current, pf_current.data, pf_current.png_obj.width, pf_current.png_obj.height);
-      motion_image image_previous;
-      image_from_png_data (&image_previous, pf_previous.data, pf_current.png_obj.width, pf_current.png_obj.height);
-      if(p.debug) gettimeofday(&tv2, NULL);
-      if(p.debug) printf ("Open file:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
-
-      // Noise reduction
-      if(p.debug) gettimeofday(&tv1, NULL);
-      filter_noise_reduction (&(image_current.average),1);
-      filter_noise_reduction (&(image_previous.average),1);
-      if(p.debug) gettimeofday(&tv2, NULL);
-      if(p.debug) printf ("Noise reduction:\t%f seconds\n", get_timediff(&tv1,&tv2));
-
-      // Intensity correction
-      if(p.debug) gettimeofday(&tv1, NULL);
-      int intensity_current = get_average_intensity(&(image_current.average));
-      int intensity_previous = get_average_intensity(&(image_previous.average));
-      int intensity_difference_before = (intensity_current - intensity_previous) / 2;
-      filter_adjust_intensity (&(image_current.average),-intensity_difference_before);
-      filter_adjust_intensity (&(image_previous.average),intensity_difference_before);
-      if(p.debug) gettimeofday(&tv2, NULL);
-      if(p.debug) printf ("Intensity correction:\t%f seconds\n", get_timediff(&tv1,&tv2));
-
-      // Background subtraction
-      if(p.debug) gettimeofday(&tv1, NULL);
-      filter_background_subtraction(&(image_current.average),&(image_previous.average));
-      if(p.debug) gettimeofday(&tv2, NULL);
-      if(p.debug) printf ("Background subtraction:\t%f seconds\n", get_timediff(&tv1,&tv2));
-
-      // Binary split
-      if(p.debug) gettimeofday(&tv1, NULL);
-      filter_split_binary(&(image_current.average),p.sensitivity);
-      if(p.debug) gettimeofday(&tv2, NULL);
-      if(p.debug) printf ("Binary split:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
-
-      // Blob reduction
-      if(p.debug) gettimeofday(&tv1, NULL);
-      int pixels_left = filter_reduce_blobs(&(image_current.average),p.passes);
-      if(p.debug) gettimeofday(&tv2, NULL);
-      if(p.debug) printf ("Blob reduction:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
-      if(p.verbose || p.debug) printf ("Pixels left:\t\t%i/10\n", pixels_left);
-
-      if( pixels_left >= 10 ) {
-        // Save file
-        if(p.debug) gettimeofday(&tv1, NULL);
-        // ToDo: Delegate file saving to thread
-        char * filename = format_time(p.file_out);
-        png_save_file(&pf_current,format_time(p.file_out));
-        free(filename);
+        // Image instance from png
+        motion_image image_current;
+        image_from_png_data (&image_current, pf_current.data, pf_current.png_obj.width, pf_current.png_obj.height);
+        motion_image image_previous;
+        image_from_png_data (&image_previous, pf_previous.data, pf_current.png_obj.width, pf_current.png_obj.height);
         if(p.debug) gettimeofday(&tv2, NULL);
-        if(p.debug) printf ("File save:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+        if(p.debug) printf ("Open file:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+
+        // Noise reduction
+        if(p.debug) gettimeofday(&tv1, NULL);
+        filter_noise_reduction (&(image_current.average),1);
+        filter_noise_reduction (&(image_previous.average),1);
+        if(p.debug) gettimeofday(&tv2, NULL);
+        if(p.debug) printf ("Noise reduction:\t%f seconds\n", get_timediff(&tv1,&tv2));
+
+        // Intensity correction
+        if(p.debug) gettimeofday(&tv1, NULL);
+        int intensity_current = get_average_intensity(&(image_current.average));
+        int intensity_previous = get_average_intensity(&(image_previous.average));
+        int intensity_difference_before = (intensity_current - intensity_previous) / 2;
+        filter_adjust_intensity (&(image_current.average),-intensity_difference_before);
+        filter_adjust_intensity (&(image_previous.average),intensity_difference_before);
+        if(p.debug) gettimeofday(&tv2, NULL);
+        if(p.debug) printf ("Intensity correction:\t%f seconds\n", get_timediff(&tv1,&tv2));
+
+        // Background subtraction
+        if(p.debug) gettimeofday(&tv1, NULL);
+        filter_background_subtraction(&(image_current.average),&(image_previous.average));
+        if(p.debug) gettimeofday(&tv2, NULL);
+        if(p.debug) printf ("Background subtraction:\t%f seconds\n", get_timediff(&tv1,&tv2));
+
+        // Binary split
+        if(p.debug) gettimeofday(&tv1, NULL);
+        filter_split_binary(&(image_current.average),p.sensitivity);
+        if(p.debug) gettimeofday(&tv2, NULL);
+        if(p.debug) printf ("Binary split:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+
+        // Blob reduction
+        if(p.debug) gettimeofday(&tv1, NULL);
+        int pixels_left = filter_reduce_blobs(&(image_current.average),p.passes);
+        if(p.debug) gettimeofday(&tv2, NULL);
+        if(p.debug) printf ("Blob reduction:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+        if(p.verbose || p.debug) printf ("Pixels left:\t\t%i/10\n", pixels_left);
+
+        if( pixels_left >= 10 ) {
+          // Save file
+          if(p.debug) gettimeofday(&tv1, NULL);
+          // ToDo: Delegate file saving to thread
+          char * filename = format_time(p.file_out);
+          png_save_file(&pf_current,format_time(p.file_out));
+          free(filename);
+          if(p.debug) gettimeofday(&tv2, NULL);
+          if(p.debug) printf ("File save:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+        }
+
+        // png_close_file(&pf_current.png_obj); // pf_current is closed as pf_previous on signal
+        png_close_file(&pf_previous.png_obj);
+        free(pf_previous.data);
+
+        pf_previous = pf_current;
+
+        free_image(image_current);
+        free_image(image_previous);
+
+        if(p.verbose || p.debug) gettimeofday(&tv2_total, NULL);
+        if(p.verbose || p.debug) printf ("Total round time:\t%f seconds\n", get_timediff(&tv1_total,&tv2_total));
+
+      } else {
+	pf_previous.is_open = 0;
+        png_close_file(&pf_previous.png_obj);
+        free(pf_previous.data);
+	pf_previous.data = NULL;
       }
-
-      // png_close_file(&pf_current.png_obj); // pf_current is closed as pf_previous on signal
-      png_close_file(&pf_previous.png_obj);
-      free(pf_previous.data);
-
-      pf_previous = pf_current;
-
-      free_image(image_current);
-      free_image(image_previous);
-
-      if(p.verbose || p.debug) gettimeofday(&tv2_total, NULL);
-      if(p.verbose || p.debug) printf ("Total round time:\t%f seconds\n", get_timediff(&tv1_total,&tv2_total));
 
     }
 
@@ -325,23 +338,23 @@ int main(int argc, char **argv)
 
     int pixel_idx = (pf_current.png_obj.width*y*4+x*4);
 
-      // Check for changes on pixel level
-      int avg_new = (pf_current.data[pixel_idx]+pf_current.data[pixel_idx+1]+pf_current.data[pixel_idx+2])/3;
-      int avg_old = (pf_previous.data[pixel_idx]+pf_previous.data[pixel_idx+1]+pf_previous.data[pixel_idx+2])/3;
-      int difference = (avg_new - avg_old);
-      if(!(
-    abs(pf_current.data[pixel_idx]-pf_previous.data[pixel_idx]) > change_treshold ||
-    abs(pf_current.data[pixel_idx+1]-pf_previous.data[pixel_idx+1]) > change_treshold ||
-    abs(pf_current.data[pixel_idx+2]-pf_previous.data[pixel_idx+2]) > change_treshold ||
-    abs(difference) > change_treshold
-    ))
-    {
-      pf_current.data[pixel_idx] = 0;
-      pf_current.data[pixel_idx+1] = 0;
-      pf_current.data[pixel_idx+2] = 0;
-      pf_current.data[pixel_idx+3] = 0;
-    }
-    }
+    // Check for changes on pixel level
+    int avg_new = (pf_current.data[pixel_idx]+pf_current.data[pixel_idx+1]+pf_current.data[pixel_idx+2])/3;
+    int avg_old = (pf_previous.data[pixel_idx]+pf_previous.data[pixel_idx+1]+pf_previous.data[pixel_idx+2])/3;
+    int difference = (avg_new - avg_old);
+    if(!(
+      abs(pf_current.data[pixel_idx]-pf_previous.data[pixel_idx]) > change_treshold ||
+      abs(pf_current.data[pixel_idx+1]-pf_previous.data[pixel_idx+1]) > change_treshold ||
+      abs(pf_current.data[pixel_idx+2]-pf_previous.data[pixel_idx+2]) > change_treshold ||
+      abs(difference) > change_treshold
+      ))
+      {
+        pf_current.data[pixel_idx] = 0;
+        pf_current.data[pixel_idx+1] = 0;
+        pf_current.data[pixel_idx+2] = 0;
+        pf_current.data[pixel_idx+3] = 0;
+      }
+      }
     }
 
     // Save difference
@@ -356,5 +369,5 @@ int main(int argc, char **argv)
   }
   
   return 0;
-  
+
 }
