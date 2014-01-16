@@ -6,10 +6,10 @@ Simple C-program for realtime motion detection of png images.
 
 Installing
 =======
-```git clone https://github.com/Hexagon/surveil.git
-cd surveil
-make
-sudo make install```
+```git clone https://github.com/Hexagon/surveil.git```
+```cd surveil```
+```make```
+```sudo make install```
 
 
 Usage
