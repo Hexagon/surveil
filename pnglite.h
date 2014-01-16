@@ -22,6 +22,13 @@
 
 	Daniel Karling
 	daniel.karling@gmail.com
+
+	--------------------------------------------------------------------------
+
+	This is not the original source version
+
+	Altered by Robin Nilsson <Hexagon@GitHub>
+
  */
 
 
@@ -29,6 +36,11 @@
 #define _PNGLITE_H_
 
 #include <string.h>
+
+#ifdef USE_MINIZ
+#define MINIZ_HEADER_FILE_ONLY
+#include "miniz.c"
+#endif
 
 #ifdef __cplusplus
 extern "C"{

@@ -1,13 +1,12 @@
 Surveil
 =======
 
-Simple C-program for realtime motion detection of png images, without external dependencies (except pnglite, which is included, and zlib)
+Simple C-program for realtime motion detection of png images, without external dependencies (pnglite and miniz is included in source).
 
 
 Installing
 =======
 
-    sudo apt-get install zlib1g-dev
     git clone https://github.com/Hexagon/surveil.git
     cd surveil
     make

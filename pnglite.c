@@ -1,12 +1,22 @@
 /*  pnglite.c - pnglite library
     For conditions of distribution and use, see copyright notice in pnglite.h
+
+    -------------------------------------------------------------------------
+
+    This is not the original source version
+
+    Altered by Robin Nilsson <Hexagon@GitHub>
+
 */
 #define DO_CRC_CHECKS 1
-#define USE_ZLIB 1
+#define USE_ZLIB 0
+#define USE_ZLITE 0
+#define USE_MINIZ 1
 
 #if USE_ZLIB
 #include <zlib.h>
-#else
+#endif
+#if USE_ZLITE
 #include "zlite.h"
 #endif
 
@@ -352,8 +362,8 @@ static int png_init_inflate(png_t* png)
 	z_stream *stream;
 	png->zs = png_alloc(sizeof(z_stream));
 #else
-	zl_stream *stream;
-	png->zs = png_alloc(sizeof(zl_stream));
+	mz_stream *stream;
+	png->zs = png_alloc(sizeof(mz_stream));
 #endif
 
 	stream = png->zs;
@@ -366,8 +376,8 @@ static int png_init_inflate(png_t* png)
 	if(inflateInit(stream) != Z_OK)
 		return PNG_ZLIB_ERROR;
 #else
-	memset(stream, 0, sizeof(zl_stream));
-	if(z_inflateInit(stream) != Z_OK)
+	memset(stream, 0, sizeof(mz_stream));
+	if(mz_inflateInit(stream) != Z_OK)
 		return PNG_ZLIB_ERROR;
 #endif
 
@@ -396,7 +406,7 @@ static int png_end_inflate(png_t* png)
 #if USE_ZLIB
 	z_stream *stream = png->zs;
 #else
-	zl_stream *stream = png->zs;
+	mz_stream *stream = png->zs;
 #endif
 
 	if(!stream)
@@ -405,7 +415,7 @@ static int png_end_inflate(png_t* png)
 #if USE_ZLIB
 	if(inflateEnd(stream) != Z_OK)
 #else
-	if(z_inflateEnd(stream) != Z_OK)
+	if(mz_inflateEnd(stream) != Z_OK)
 #endif
 	{
 		printf("ZLIB says: %s\n", stream->msg);
@@ -423,7 +433,7 @@ static int png_inflate(png_t* png, unsigned char* data, int len)
 #if USE_ZLIB
 	z_stream *stream = png->zs;
 #else
-	zl_stream *stream = png->zs;
+	mz_stream *stream = png->zs;
 #endif
 
 	if(!stream)
@@ -435,7 +445,7 @@ static int png_inflate(png_t* png, unsigned char* data, int len)
 #if USE_ZLIB
 	result = inflate(stream, Z_SYNC_FLUSH);
 #else
-	result = z_inflate(stream);
+	result = mz_inflate(stream, MZ_SYNC_FLUSH);
 #endif
 
 	if(result != Z_STREAM_END && result != Z_OK)
