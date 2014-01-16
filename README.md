@@ -1,7 +1,7 @@
 Surveil
 =======
 
-Simple C-program for realtime motion detection of png images.
+Simple C-program for realtime motion detection of png images, without external dependencies (except pnglite, which is included, and zlib)
 
 
 Installing
