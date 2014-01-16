@@ -22,7 +22,7 @@ Mode 1 - Continous motion detection
 This program has two modes, in mode 1 (-o) it constantly polls the file provided by -c for changes in motion, and saves current frame to the file specified by -o.
 
 Example:
-```surveil --current /tmp/surveil.png --out "/home/motion/detections/motion_%F_%H%M%S.png" --sensitivity 27 --passes 6```
+```surveil --current /tmp/surveil.png --out "/home/motion/detections/motion_%F_%H%M%S.png" --sensitivity 21 --passes 7```
 
  * --sensitivity represents the minimum change of intensity (0-255) to identify a change as motion.
  * --passes represents the number of passes of blob reduction (to reduce unwanted noise as snowflakes).
