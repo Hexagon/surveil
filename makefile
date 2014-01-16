@@ -1,7 +1,7 @@
 TARGET = surveil
 LIBS = -lpng
 CC = gcc
-CFLAGS = -g -O2
+CFLAGS = -g -O3
 INST_PREFIX = /usr/local
 
 .PHONY: default all clean install

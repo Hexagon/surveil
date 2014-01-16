@@ -79,6 +79,7 @@ void print_help() {
     printf("\t-e, --passes\t\tPasses, the minimum radius of an object that should be counted as an object (in pixels) -s\n");
     printf("\t-t, --tune\t\tGet a suitable vaiable for -s\n");
     printf("\t-v, --verbose\t\tPrint interesting information along the way\n");
+    printf("\t-u, --debug\t\tPrint even more interesting information along the way\n");
 
 }
 
@@ -93,6 +94,7 @@ void parse_options(prog_options* options, int argc, char **argv) {
     options->sensitivity = 25;
     options->passes = 5;
     options->verbose = 0;
+    options->debug = 0;
 
     static struct option long_options[] = {
         {"previous", required_argument, 0, 'p'},
@@ -104,13 +106,14 @@ void parse_options(prog_options* options, int argc, char **argv) {
         {"sensitivity", required_argument, 0, 's'},
         {"passes", required_argument, 0, 'e'},
         {"verbose", no_argument, 0, 'v'},
+        {"debug", no_argument, 0, 'u'},
         {0, 0, 0, 0}
     };
     int option_index = 0, c;
     if (argc > 0) {
         char *old_locale;
         char *saved_locale;
-        while ((c = getopt_long(argc, argv, "p:c:o:d:hs:e:tv",
+        while ((c = getopt_long(argc, argv, "p:c:o:d:hs:e:tvu",
                  long_options, &option_index)) != -1) {
             switch (c) {
             case 'p':
@@ -134,6 +137,9 @@ void parse_options(prog_options* options, int argc, char **argv) {
                 break;
             case 'v':
                 options->verbose = 1;
+                break;
+            case 'u':
+                options->debug = 1;
                 break;
             case 's':
                 options->sensitivity = atoi(optarg);
@@ -221,11 +227,11 @@ int main(int argc, char **argv)
         execute = 1;
         while(execute){
 
-            if(p.verbose) fprintf(stdout,"\nNew round\n");
-            if(p.verbose) gettimeofday(&tv1_total, NULL);
+            if(p.verbose || p.debug) fprintf(stdout,"\nNew round\n");
+            if(p.verbose || p.debug) gettimeofday(&tv1_total, NULL);
 
             // Read current image
-            if(p.verbose) gettimeofday(&tv1, NULL);
+            if(p.debug) gettimeofday(&tv1, NULL);
             r = open_png(&pf_current, p.file_current);
             png_exit_on_error(r);
 
@@ -240,54 +246,54 @@ int main(int argc, char **argv)
             image_from_png_data (&image_current, pf_current.data, pf_current.png_obj.width, pf_current.png_obj.height);
             motion_image image_previous;
             image_from_png_data (&image_previous, pf_previous.data, pf_current.png_obj.width, pf_current.png_obj.height);
-            if(p.verbose) gettimeofday(&tv2, NULL);
-            if(p.verbose) printf ("Open file:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+            if(p.debug) gettimeofday(&tv2, NULL);
+            if(p.debug) printf ("Open file:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
 
             // Noise reduction
-            if(p.verbose) gettimeofday(&tv1, NULL);
+            if(p.debug) gettimeofday(&tv1, NULL);
             filter_noise_reduction (&(image_current.average),1);
             filter_noise_reduction (&(image_previous.average),1);
-            if(p.verbose) gettimeofday(&tv2, NULL);
-            if(p.verbose) printf ("Noise reduction:\t%f seconds\n", get_timediff(&tv1,&tv2));
+            if(p.debug) gettimeofday(&tv2, NULL);
+            if(p.debug) printf ("Noise reduction:\t%f seconds\n", get_timediff(&tv1,&tv2));
 
             // Intensity correction
-            if(p.verbose) gettimeofday(&tv1, NULL);
+            if(p.debug) gettimeofday(&tv1, NULL);
             int intensity_current = get_average_intensity(&(image_current.average));
             int intensity_previous = get_average_intensity(&(image_previous.average));
             int intensity_difference_before = (intensity_current - intensity_previous) / 2;
             filter_adjust_intensity (&(image_current.average),-intensity_difference_before);
             filter_adjust_intensity (&(image_previous.average),intensity_difference_before);
-            if(p.verbose) gettimeofday(&tv2, NULL);
-            if(p.verbose) printf ("Intensity correction:\t%f seconds\n", get_timediff(&tv1,&tv2));
+            if(p.debug) gettimeofday(&tv2, NULL);
+            if(p.debug) printf ("Intensity correction:\t%f seconds\n", get_timediff(&tv1,&tv2));
 
             // Background subtraction
-            if(p.verbose) gettimeofday(&tv1, NULL);
+            if(p.debug) gettimeofday(&tv1, NULL);
             filter_background_subtraction(&(image_current.average),&(image_previous.average));
-            if(p.verbose) gettimeofday(&tv2, NULL);
-            if(p.verbose) printf ("Background subtraction:\t%f seconds\n", get_timediff(&tv1,&tv2));
+            if(p.debug) gettimeofday(&tv2, NULL);
+            if(p.debug) printf ("Background subtraction:\t%f seconds\n", get_timediff(&tv1,&tv2));
 
             // Binary split
-            if(p.verbose) gettimeofday(&tv1, NULL);
+            if(p.debug) gettimeofday(&tv1, NULL);
             filter_split_binary(&(image_current.average),p.sensitivity);
-            if(p.verbose) gettimeofday(&tv2, NULL);
-            if(p.verbose) printf ("Binary split:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+            if(p.debug) gettimeofday(&tv2, NULL);
+            if(p.debug) printf ("Binary split:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
 
             // Blob reduction
-            if(p.verbose) gettimeofday(&tv1, NULL);
+            if(p.debug) gettimeofday(&tv1, NULL);
             int pixels_left = filter_reduce_blobs(&(image_current.average),p.passes);
-            if(p.verbose) gettimeofday(&tv2, NULL);
-            if(p.verbose) printf ("Blob reduction:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
-            if(p.verbose) printf ("Pixels left:\t\t%i/10\n", pixels_left);
+            if(p.debug) gettimeofday(&tv2, NULL);
+            if(p.debug) printf ("Blob reduction:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+            if(p.verbose || p.debug) printf ("Pixels left:\t\t%i/10\n", pixels_left);
 
             if( pixels_left >= 10 ) {
                 // Save file
-                if(p.verbose) gettimeofday(&tv1, NULL);
+                if(p.debug) gettimeofday(&tv1, NULL);
                 // ToDo: Delegate file saving to thread
                 char * filename = format_time(p.file_out);
                 png_save_file(&pf_current,format_time(p.file_out));
                 free(filename);
-                if(p.verbose) gettimeofday(&tv2, NULL);
-                if(p.verbose) printf ("File save:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
+                if(p.debug) gettimeofday(&tv2, NULL);
+                if(p.debug) printf ("File save:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
             }
 
             // png_close_file(&pf_current.png_obj); // pf_current is closed as pf_previous on signal
@@ -299,12 +305,12 @@ int main(int argc, char **argv)
             free_image(image_current);
             free_image(image_previous);
 
-            if(p.verbose) gettimeofday(&tv2_total, NULL);
-            if(p.verbose) printf ("Total round time:\t%f seconds\n", get_timediff(&tv1_total,&tv2_total));
+            if(p.verbose || p.debug) gettimeofday(&tv2_total, NULL);
+            if(p.verbose || p.debug) printf ("Total round time:\t%f seconds\n", get_timediff(&tv1_total,&tv2_total));
 
         }
 
-        if(p.verbose) printf ("\nExecution interrupted, cleaning up...\n");
+        if(p.verbose || p.debug) printf ("\nExecution interrupted, cleaning up...\n");
 
         r = png_close_file(&pf_previous.png_obj);
         free(pf_previous.data);

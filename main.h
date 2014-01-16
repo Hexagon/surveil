@@ -10,23 +10,24 @@ extern "C"{
 #include "motion.h"
 
 typedef struct t_prog_options {
-	
-	const char* file_current;
-	const char* file_previous;
-	const char* file_out;
-	const char* file_out_difference;
 
-    int tune;
-    int sensitivity;
-	int passes;
-	int verbose;
+  const char* file_current;
+  const char* file_previous;
+  const char* file_out;
+  const char* file_out_difference;
+
+  int tune;
+  int sensitivity;
+  int passes;
+  int debug;
+  int verbose;
 
 } prog_options;
 
 typedef struct t_png_file {
-	png_t png_obj;
-	unsigned char* data;
-	int is_open;
+  png_t png_obj;
+  unsigned char* data;
+  int is_open;
 } png_file;
 
 struct timeval  tv1, tv2, tv1_total, tv2_total;

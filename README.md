@@ -38,18 +38,20 @@ Command line options
 =======
 
 ```
-	-h, --help		This help
+        -h, --help              This help
 
 Input:
-	-c, --current		Path to current frame (png) (used for both -o and -d)
-	-p, --previous		Path to save previous frame (used for -d)
+        -c, --current           Path to current frame (png)
+        -p, --previous          Path to save previous frame (used for -d)
 
-Modes:
-	-o, --out		Path to save current frame to on detected motion
-	-d, --diff		Path to save cleaned frame to on changed pixels
+Output:
+        -o, --out               Path to save current frame to on detected motion
+        -d, --diff              Path to save cleaned frame to on changed pixels
 
 Options:
-	-s, --sensitivity		Intensity treshold, a value between 0 and 255 -s
-	-e, --passes		Passes, the minimum radius of an object that should be counted as an object (in pixels) -s
-	-t, --tune		Get a suitable vaiable for -s
-	-v, --verbose		Print interesting information along the way```
+        -s, --sensitivity               Intensity treshold, a value between 0 and 255 -s
+        -e, --passes            Passes, the minimum radius of an object that should be counted as an object (in pixels) -s
+        -t, --tune              Get a suitable vaiable for -s
+        -v, --verbose           Print interesting information along the way
+        -u, --debug             Print even more interesting information along the way```
+

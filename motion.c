@@ -38,12 +38,13 @@ void image_from_png_data (motion_image* image, unsigned char* data, int width, i
         average.data = (unsigned char*)malloc(channel_len);
 
         // Deep copy the image data
-        unsigned int pixel_idx;
+        unsigned int pixel_idx,pixel_mult;
         for( pixel_idx = 0 ; pixel_idx < channel_len; pixel_idx++ ) {
-        	red.data[pixel_idx] 		= data[pixel_idx*4  ];
-        	green.data[pixel_idx] 	= data[pixel_idx*4+1];
-        	red.data[pixel_idx] 		= data[pixel_idx*4+2];
-        	average.data[pixel_idx]  = (data[pixel_idx*4  ]+data[pixel_idx*4+1]+data[pixel_idx*4+2])/3;
+                pixel_mult = pixel_idx*4;
+        	red.data[pixel_idx] 		= data[pixel_mult  ];
+        	green.data[pixel_idx] 	= data[pixel_mult+1];
+        	red.data[pixel_idx] 		= data[pixel_mult+2];
+        	average.data[pixel_idx]  = (data[pixel_mult  ]+data[pixel_mult+1]+data[pixel_mult+2])/3;
         }
 
         // Populate instance of motion_image
@@ -62,12 +63,12 @@ void image_from_png_data (motion_image* image, unsigned char* data, int width, i
 
 }
 
-void image_to_png_data(motion_image image,unsigned char* png_data) {
-	int data_len = image.width*image.height,x;
+void image_to_png_data(motion_image* image,unsigned char* png_data) {
+	int data_len = image->width*image->height,x;
 	for( x = 0 ; x < data_len ; x++ ) {
-		png_data[x*4] = image.average.data[x];
-		png_data[x*4+1] = image.average.data[x];
-		png_data[x*4+2] = image.average.data[x];
+		png_data[x*4] = image->average.data[x];
+		png_data[x*4+1] = image->average.data[x];
+		png_data[x*4+2] = image->average.data[x];
 		png_data[x*4+3] = 255;
 	}
 }
@@ -219,7 +220,7 @@ int filter_reduce_blobs(motion_channel* channel, int passes) {
                         new_channel.data[pixel_idx-1] = 0;
                         new_channel.data[(channel->image)->width*(y-1)+x] = 0;
                         new_channel.data[(channel->image)->width*(y+1)+x] = 0;
-                    }                
+                    }
                 }
             }
         }
