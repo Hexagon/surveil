@@ -24,7 +24,7 @@ clean:
 	-rm -f *.o
 	-rm -f $(TARGET)
 
-  INST_PREFIX=/usr/local
+INST_PREFIX=/usr/local
     
 install: $(TARGET)
 	install -m 0755 $(TARGET) $(INST_PREFIX)/bin
