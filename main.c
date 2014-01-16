@@ -101,8 +101,8 @@ void parse_options(prog_options* options, int argc, char **argv) {
         {"diff", required_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
         {"tune", no_argument, 0, 't'},
-        {"sensitivity", no_argument, 0, 's'},
-        {"passes", no_argument, 0, 'e'},
+        {"sensitivity", required_argument, 0, 's'},
+        {"passes", required_argument, 0, 'e'},
         {"verbose", no_argument, 0, 'v'},
         {0, 0, 0, 0}
     };
@@ -277,17 +277,17 @@ int main(int argc, char **argv)
             int pixels_left = filter_reduce_blobs(&(image_current.average),p.passes);
             if(p.verbose) gettimeofday(&tv2, NULL);
             if(p.verbose) printf ("Blob reduction:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
-            if(p.verbose) printf ("Pixels left:\t\t%i/5\n", pixels_left);
+            if(p.verbose) printf ("Pixels left:\t\t%i/10\n", pixels_left);
 
-            if( pixels_left > 5 ) { 
+            if( pixels_left >= 10 ) {
                 // Save file
                 if(p.verbose) gettimeofday(&tv1, NULL);
                 // ToDo: Delegate file saving to thread
                 char * filename = format_time(p.file_out);
                 png_save_file(&pf_current,format_time(p.file_out));
-                free(filename);  
+                free(filename);
                 if(p.verbose) gettimeofday(&tv2, NULL);
-                if(p.verbose) printf ("File save:\t\t%f seconds\n", get_timediff(&tv1,&tv2));          
+                if(p.verbose) printf ("File save:\t\t%f seconds\n", get_timediff(&tv1,&tv2));
             }
 
             // png_close_file(&pf_current.png_obj); // pf_current is closed as pf_previous on signal
@@ -297,18 +297,18 @@ int main(int argc, char **argv)
             pf_previous = pf_current;
 
             free_image(image_current);
-            free_image(image_previous); 
+            free_image(image_previous);
 
             if(p.verbose) gettimeofday(&tv2_total, NULL);
             if(p.verbose) printf ("Total round time:\t%f seconds\n", get_timediff(&tv1_total,&tv2_total));
 
         }
-        
-        if(p.verbose) printf ("\nExecution interrupted, cleaning up...\n");      
+
+        if(p.verbose) printf ("\nExecution interrupted, cleaning up...\n");
 
         r = png_close_file(&pf_previous.png_obj);
         free(pf_previous.data);
-        
+
         signal(SIGINT, SIG_DFL);
     }
 

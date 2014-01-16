@@ -6,4 +6,4 @@ DESTDIR=/home/pi/motion
 SENSITIVITY=27
 PASSES=6
 
-surveil -c $FILENAME -s $SENSITIVITY -e $PASSES -o "$DESTDIR/motion_%F_%H%M%S.png" -v
+surveil --current $FILENAME --sensitivity $SENSITIVITY --passes $PASSES --out "$DESTDIR/motion_%F_%H%M%S.png" -v

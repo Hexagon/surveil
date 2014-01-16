@@ -17,10 +17,10 @@ void free_image(motion_image image) {
 /* data is a pointer to an unsigned char array with rgbargbargba... */
 void image_from_png_data (motion_image* image, unsigned char* data, int width, int height) {
 
-		// Store width and height
-		image->width = width;
-		image->height = width;
-		
+	// Store width and height
+	image->width = width;
+	image->height = width;
+
         // Prepare the channels
         motion_channel red;
         motion_channel green;
@@ -32,10 +32,10 @@ void image_from_png_data (motion_image* image, unsigned char* data, int width, i
         unsigned int data_len = channel_len*4;
 
         // Allocate memory
-        red.data = malloc(width*height);
-        green.data = malloc(width*height);
-        blue.data = malloc(width*height);
-        average.data = malloc(width*height);
+        red.data = (unsigned char*)malloc(channel_len);
+        green.data = (unsigned char*)malloc(channel_len);
+        blue.data = (unsigned char*)malloc(channel_len);
+        average.data = (unsigned char*)malloc(channel_len);
 
         // Deep copy the image data
         unsigned int pixel_idx;
@@ -79,21 +79,34 @@ void filter_noise_reduction(motion_channel* channel, int intensity) {
 	motion_channel new_channel;
 	new_channel.image = channel->image;
 
-	new_channel.data = malloc(new_channel.image->width*new_channel.image->height);
+	new_channel.data = (unsigned char*)malloc(new_channel.image->width*new_channel.image->height);
 
 	// Apply filter
-	unsigned int x,y,pixel_idx,temp_value,row;
-    for( y = 1 ; y < new_channel.image->height -1 ; y++ ) {
+	unsigned int x,y,pixel_idx,temp_value,row,counter;
+    for( y = 0 ; y < new_channel.image->height ; y++ ) {
         row = (channel->image)->width*y;
-        for( x = 1 ; x < new_channel.image->width -1 ; x++ ) {
+        for( x = 0 ; x < new_channel.image->width ; x++ ) {
             pixel_idx = row+x;
             temp_value = 0;
+	    counter = 1;
             temp_value += channel->data[pixel_idx];
-            temp_value += channel->data[pixel_idx+1] = 0;
-            temp_value += channel->data[pixel_idx-1] = 0;
-            temp_value += channel->data[(channel->image)->width*(y-1)+x] = 0;
-            temp_value += channel->data[(channel->image)->width*(y+1)+x] = 0;
-            new_channel.data[pixel_idx] = temp_value/5;            
+            if(x < new_channel.image->width -1 ) {
+		temp_value += channel->data[pixel_idx+1];
+		counter++;
+	    }
+            if(x > 0 ) {
+                temp_value += channel->data[pixel_idx-1];
+		counter++;
+	    }
+            if(y > 0 ) {
+                temp_value += channel->data[(channel->image)->width*(y-1)+x];
+		counter++;
+            }
+            if(y < new_channel.image->height -1 ) {
+                temp_value += channel->data[(channel->image)->width*(y+1)+x];
+                counter++;
+            }
+            new_channel.data[pixel_idx] = temp_value/counter;
         }
     }
 
