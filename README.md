@@ -7,6 +7,7 @@ Simple C-program for realtime motion detection of png images, without external d
 Installing
 =======
 
+    sudo apt-get install zlib1g-dev
     git clone https://github.com/Hexagon/surveil.git
     cd surveil
     make
