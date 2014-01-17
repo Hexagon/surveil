@@ -1,9 +1,9 @@
-#include <stdio.h>      // printf
-#include <stdlib.h>     // exit
+#include <stdio.h>      // printf, fprintf, stderr
+#include <stdlib.h>     // exit, exit codes
 #include <getopt.h>     // getopt_long
 #include <signal.h>
-#include <math.h>
-#include <time.h>
+#include <math.h>       // Fixme: unused in this context, (should be, at least)?
+#include <time.h>       // gettimeofday, struct timeval
 #include "main.h"
 
 void trap(int signal){ execute = 0; }
@@ -331,29 +331,30 @@ int main(int argc, char **argv)
 
   // Find difference
   if ( p.file_out_difference != NULL ) {
+    // Fixme: Move calculation to motion.c
     int change_treshold = 10;
     int x, y;
     for( x = 0 ; x < pf_current.png_obj.width ; x++ ) {
-    for( y = 0 ; y < pf_current.png_obj.height ; y++ ) {
+      for( y = 0 ; y < pf_current.png_obj.height ; y++ ) {
 
-    int pixel_idx = (pf_current.png_obj.width*y*4+x*4);
+      int pixel_idx = (pf_current.png_obj.width*y*4+x*4);
 
-    // Check for changes on pixel level
-    int avg_new = (pf_current.data[pixel_idx]+pf_current.data[pixel_idx+1]+pf_current.data[pixel_idx+2])/3;
-    int avg_old = (pf_previous.data[pixel_idx]+pf_previous.data[pixel_idx+1]+pf_previous.data[pixel_idx+2])/3;
-    int difference = (avg_new - avg_old);
-    if(!(
-      abs(pf_current.data[pixel_idx]-pf_previous.data[pixel_idx]) > change_treshold ||
-      abs(pf_current.data[pixel_idx+1]-pf_previous.data[pixel_idx+1]) > change_treshold ||
-      abs(pf_current.data[pixel_idx+2]-pf_previous.data[pixel_idx+2]) > change_treshold ||
-      abs(difference) > change_treshold
-      ))
-      {
-        pf_current.data[pixel_idx] = 0;
-        pf_current.data[pixel_idx+1] = 0;
-        pf_current.data[pixel_idx+2] = 0;
-        pf_current.data[pixel_idx+3] = 0;
-      }
+      // Check for changes on pixel level
+      int avg_new = (pf_current.data[pixel_idx]+pf_current.data[pixel_idx+1]+pf_current.data[pixel_idx+2])/3;
+      int avg_old = (pf_previous.data[pixel_idx]+pf_previous.data[pixel_idx+1]+pf_previous.data[pixel_idx+2])/3;
+      int difference = (avg_new - avg_old);
+      if(!(
+        abs(pf_current.data[pixel_idx]-pf_previous.data[pixel_idx]) > change_treshold ||
+        abs(pf_current.data[pixel_idx+1]-pf_previous.data[pixel_idx+1]) > change_treshold ||
+        abs(pf_current.data[pixel_idx+2]-pf_previous.data[pixel_idx+2]) > change_treshold ||
+        abs(difference) > change_treshold
+        ))
+        {
+          pf_current.data[pixel_idx] = 0;
+          pf_current.data[pixel_idx+1] = 0;
+          pf_current.data[pixel_idx+2] = 0;
+          pf_current.data[pixel_idx+3] = 0;
+        }
       }
     }
 
@@ -368,6 +369,6 @@ int main(int argc, char **argv)
 
   }
   
-  return 0;
+  exit(EXIT_SUCCESS);
 
 }
